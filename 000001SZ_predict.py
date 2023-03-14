@@ -141,7 +141,7 @@ TRAIN_WEIGHT=0.9
 SEQ_LEN=99
 LEARNING_RATE=0.00001
 BATCH_SIZE=4
-EPOCH=100
+EPOCH=10
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #train_size=int(TRAIN_WEIGHT*(data.shape[0]))
 train_path="stock_daily/stock_train.csv"
@@ -282,8 +282,16 @@ class TransAm(nn.Module):
 
 # In[394]:
 
-lstm_path="./model_lstm/epoch_"
-transformer_path="./model_transformer/epoch_"
+# lstm_path="./model_lstm/epoch_"
+# transformer_path="./model_transformer/epoch_"
+symbol = '000001.SZ'
+cnname = ""
+for item in symbol.split("."):
+    cnname += item
+if os.path.exists("./" + cnname) is False:
+    os.makedirs("./" + cnname)
+lstm_path="./"+cnname+"/LSTM"
+transformer_path="./"+cnname+"/TRANSFORMER"
 save_path=lstm_path
 def train(epoch):
     model.train()
@@ -302,8 +310,8 @@ def train(epoch):
             loss_list.append(loss.item())
             print("epoch=",epoch,"iteration=",iteration,"loss=",loss.item())
         if epoch%EPOCH==0:
-            torch.save(model.state_dict,save_path+str(epoch)+"_Model.pkl")
-            torch.save(optimizer.state_dict,save_path+str(epoch)+"_Optimizer.pkl")
+            torch.save(model.state_dict(),save_path+"_Model.pkl")
+            torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
 
 
 # In[395]:
@@ -358,7 +366,7 @@ def contrast_lines(predict_list):
     plt.plot(x,np.array(real_list),label="real")
     plt.plot(x,np.array(prediction_list),label="prediction")
     plt.legend()
-    plt.savefig("000001SZ_Pre.png",dpi=3000)
+    plt.savefig(cnname+"_Pre.png",dpi=3000)
     plt.show()
 
 
@@ -372,14 +380,13 @@ save_path=lstm_path
 model=model.to(device)
 criterion=nn.MSELoss()
 
-if os.path.exists("./model_lstm/LSTM_"+str(EPOCH)+"_Model.pkl"):
-    model.load_state_dict(torch.load("./model_lstm/epoch_"+str(EPOCH)+"_Model.pkl"))
+if os.path.exists("./"+cnname+"/LSTM_Model.pkl"):
+    model.load_state_dict(torch.load("./"+cnname+"/LSTM_Model.pkl"))
 optimizer=optim.Adam(model.parameters(),lr=LEARNING_RATE)
-if os.path.exists("./model_lstm/LSTM_"+str(EPOCH)+"_Optimizer.pkl"):
-    optimizer.load_state_dict(torch.load("./model_lstm/epoch_"+str(EPOCH)+"_Optimizer.pkl"))
+if os.path.exists("./"+cnname+"/LSTM_Optimizer.pkl"):
+    optimizer.load_state_dict(torch.load("./"+cnname+"/LSTM_Optimizer.pkl"))
 
 if __name__=="__main__":
-    symbol = '000001.SZ'
     period = 100
     data = import_csv(symbol)
     df_draw=data[-period:]
