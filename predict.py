@@ -138,6 +138,8 @@ def train(epoch):
         if iteration%common.SAVE_NUM==0:
             torch.save(model.state_dict(),save_path+"_Model.pkl")
             torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
+    torch.save(model.state_dict(),save_path+"_Model.pkl")
+    torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
     subbar.close()
 
 def test():
