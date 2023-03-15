@@ -21,8 +21,8 @@ from tqdm import tqdm
 TRAIN_WEIGHT=0.9
 SEQ_LEN=99
 LEARNING_RATE=0.00001
-BATCH_SIZE=4
-EPOCH=1000
+BATCH_SIZE=32
+EPOCH=1
 SAVE_NUM=100
 
 mean_list=[]
@@ -281,11 +281,11 @@ def train(epoch):
         loss=criterion(output,label)
         loss.backward()        
         optimizer.step()
+        pbar.set_description("ep=%d,iter=%d,lo=%.4f,tl=%.4f"%(epoch,iteration,loss.item(),test_loss))
+        pbar.update(20)
         if i%20==0:
             loss_list.append(loss.item())
             # print("epoch=",epoch,"iteration=",iteration,"loss=",loss.item())
-            pbar.set_description("ep=%d,iter=%d,lo=%.4f,tl=%.4f"%(epoch,iteration,loss.item(),test_loss))
-            pbar.update(20)
         if iteration%SAVE_NUM==0:
             torch.save(model.state_dict(),save_path+"_Model.pkl")
             torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
@@ -319,7 +319,7 @@ def loss_curve(loss_list):
 def contrast_lines(predict_list):
     real_list=[]
     prediction_list=[]
-    dataloader=DataLoader(dataset=stock_test,batch_size=4,shuffle=False,drop_last=True)
+    dataloader=DataLoader(dataset=stock_test,batch_size=BATCH_SIZE,shuffle=False,drop_last=True)
     for i,(data,label) in enumerate(dataloader):
         for idx in range(BATCH_SIZE):
             real_list.append(np.array(label[idx]*std_list[0]+mean_list[0]))
