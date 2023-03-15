@@ -239,6 +239,8 @@ if __name__=="__main__":
         data.drop(['ts_code','Date'],axis=1,inplace = True)    
         train_size=int(common.TRAIN_WEIGHT*(data.shape[0]))
         # print("Split the data for trainning and testing...")
+        if train_size<common.SEQ_LEN or train_size+common.SEQ_LEN>data.shape[0]:
+            continue
         Train_data=data[:train_size+common.SEQ_LEN]
         Test_data=data[train_size-common.SEQ_LEN:]
         # Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
