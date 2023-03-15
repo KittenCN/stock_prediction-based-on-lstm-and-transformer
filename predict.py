@@ -147,9 +147,12 @@ def train(epoch):
     subbar.close()
 
 def test():
+    global test_loss
     model.eval()
     global accuracy_list, predict_list, test_loss, loss
-    dataloader=DataLoader(dataset=stock_test,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True)
+    if len(stock_test) < 4:
+        return 0.00
+    dataloader=DataLoader(dataset=stock_test,batch_size=4,shuffle=False,drop_last=True)
     for i,(data,label) in enumerate(dataloader):
         with torch.no_grad():            
             data,label=data.to(common.device),label.to(common.device)
