@@ -1,3 +1,4 @@
+import os
 import tushare as ts
 from tqdm import tqdm
 
@@ -50,4 +51,6 @@ def get_stock_data(ts_code=""):
     pbar.close()
 
 if __name__ == "__main__":
+    if os.path.exists("./stock_daily"):
+        os.mkdir("./stock_daily")
     get_stock_data()
