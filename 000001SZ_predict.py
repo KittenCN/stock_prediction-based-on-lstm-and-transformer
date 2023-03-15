@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,10 +8,13 @@ import seaborn
 import mplfinance as mpf
 import matplotlib as mpl# 用于设置曲线参数
 from cycler import cycler# 用于定制线条颜色
-
-
-# In[2]:
-
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset,DataLoader
+import math
+import numpy as np
+import os
 
 #数据清洗：丢弃行，或用上一行的值填充
 def data_wash(dataset,keepTime=False):
@@ -23,10 +23,6 @@ def data_wash(dataset,keepTime=False):
     else:
         dataset.dropna()
     return dataset
-
-
-# In[3]:
-
 
 def import_csv(stock_code):
     #time设为index的同时是否保留时间列
@@ -43,11 +39,8 @@ def import_csv(stock_code):
     df.set_index(df['Date'], inplace=True)
     return df
 
-
-# In[361]:
-
-
 def draw_Kline(df,period,symbol):
+
     # 设置基本参数
     # type:#绘制图形的类型，有candle, renko, ohlc, line等
     # 此处选择candle,即K线图
@@ -118,52 +111,9 @@ def draw_Kline(df,period,symbol):
         savefig='A_stock-%s %s_candle_line'
         %(symbol, period) + '.jpg')
     plt.show()
-
-
-# In[163]:
-
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-
-from torch.utils.data import Dataset,DataLoader
-import math
-import numpy as np
-import os
-
-
-# In[320]:
-
-
-#读取数据切割数据集并保存
-TRAIN_WEIGHT=0.9
-SEQ_LEN=99
-LEARNING_RATE=0.00001
-BATCH_SIZE=4
-EPOCH=10
-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#train_size=int(TRAIN_WEIGHT*(data.shape[0]))
-train_path="stock_daily/stock_train.csv"
-test_path="stock_daily/stock_test.csv"
-#Train_data=data[:train_size+SEQ_LEN]
-#Test_data=data[train_size-SEQ_LEN:]
-#Train_data.to_csv(train_path,sep=',',index=False,header=False)
-#Test_data.to_csv(test_path,sep=',',index=False,header=False)
-
-
-# In[321]:
-
-
-mean_list=[]
-std_list=[]
-
-
-# In[358]:
-
-
 #完成数据集类
 class Stock_Data(Dataset):
+
     def __init__(self,train=True,transform=None):        
         if train==True:
             train_path="stock_daily/stock_train.csv"
@@ -202,16 +152,9 @@ class Stock_Data(Dataset):
         return self.data[index],self.label[index]
     def __len__(self):
         return len(self.data[:,0])
-
-
-# In[388]:
-
-
-stock_train=Stock_Data(train=True)
-stock_test=Stock_Data(train=False)
-
 #LSTM模型
 class LSTM(nn.Module):
+
     def __init__(self,dimension):
         super(LSTM,self).__init__()
         self.lstm=nn.LSTM(input_size=dimension,hidden_size=128,num_layers=3,batch_first=True)
@@ -223,11 +166,6 @@ class LSTM(nn.Module):
         x=self.linear1(x)
         x=self.linear2(x)
         return x
-
-
-# In[391]:
-
-
 #传入tensor进行位置编码
 class PositionalEncoding(nn.Module):
     def __init__(self,d_model,max_len=SEQ_LEN):
@@ -243,10 +181,6 @@ class PositionalEncoding(nn.Module):
         
     def forward(self,x):
         return x+self.pe[:x.size(0),:]
-
-
-# In[392]:
-
 
 class TransAm(nn.Module):
     def __init__(self,feature_size=8,num_layers=6,dropout=0.1):
@@ -279,20 +213,6 @@ class TransAm(nn.Module):
         output=self.linear1(output)
         return output
 
-
-# In[394]:
-
-# lstm_path="./model_lstm/epoch_"
-# transformer_path="./model_transformer/epoch_"
-symbol = '000001.SZ'
-cnname = ""
-for item in symbol.split("."):
-    cnname += item
-if os.path.exists("./" + cnname) is False:
-    os.makedirs("./" + cnname)
-lstm_path="./"+cnname+"/LSTM"
-transformer_path="./"+cnname+"/TRANSFORMER"
-save_path=lstm_path
 def train(epoch):
     model.train()
     global loss_list
@@ -313,10 +233,6 @@ def train(epoch):
             torch.save(model.state_dict(),save_path+"_Model.pkl")
             torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
 
-
-# In[395]:
-
-
 def test():
     model.eval()
     global accuracy_list
@@ -334,10 +250,6 @@ def test():
             accuracy_list.append(accuracy.item())
     print("test_data MSELoss:(pred-real)/real=",np.mean(accuracy_list))
 
-
-# In[396]:
-
-
 def loss_curve(loss_list):
     x=np.linspace(1,len(loss_list),len(loss_list))
     x=20*x
@@ -346,10 +258,6 @@ def loss_curve(loss_list):
     plt.xlabel("iteration")
     plt.savefig("train_loss.png",dpi=3000)
     plt.show()
-
-
-# In[397]:
-
 
 def contrast_lines(predict_list):
     real_list=[]
@@ -369,9 +277,40 @@ def contrast_lines(predict_list):
     plt.savefig(cnname+"_Pre.png",dpi=3000)
     plt.show()
 
+stock_train=Stock_Data(train=True)
+stock_test=Stock_Data(train=False)
+
+#读取数据切割数据集并保存
+TRAIN_WEIGHT=0.9
+SEQ_LEN=99
+LEARNING_RATE=0.00001
+BATCH_SIZE=4
+EPOCH=10
+device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#train_size=int(TRAIN_WEIGHT*(data.shape[0]))
+train_path="stock_daily/stock_train.csv"
+test_path="stock_daily/stock_test.csv"
+#Train_data=data[:train_size+SEQ_LEN]
+#Test_data=data[train_size-SEQ_LEN:]
+#Train_data.to_csv(train_path,sep=',',index=False,header=False)
+#Test_data.to_csv(test_path,sep=',',index=False,header=False)
+
+mean_list=[]
+std_list=[]
+
+# lstm_path="./model_lstm/epoch_"
+# transformer_path="./model_transformer/epoch_"
+symbol = '000001.SZ'
+cnname = ""
+for item in symbol.split("."):
+    cnname += item
+if os.path.exists("./" + cnname) is False:
+    os.makedirs("./" + cnname)
+lstm_path="./"+cnname+"/LSTM"
+transformer_path="./"+cnname+"/TRANSFORMER"
+save_path=lstm_path
 
 #选择模型为LSTM或Transformer，注释掉一个
-
 model=LSTM(dimension=8)
 save_path=lstm_path
 #model=TransAm(feature_size=8)
