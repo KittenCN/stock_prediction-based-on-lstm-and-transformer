@@ -20,8 +20,8 @@ from tqdm import tqdm
 TRAIN_WEIGHT=0.9
 SEQ_LEN=99
 LEARNING_RATE=0.00001
-BATCH_SIZE=32
-EPOCH=100
+BATCH_SIZE=64
+EPOCH=10
 SAVE_NUM=100
 
 mean_list=[]
@@ -158,15 +158,13 @@ elif model_mode=="TRANSFORMER":
 model=model.to(device)
 print(model)
 criterion=nn.MSELoss()
-
-test_loss = 0.00
-
-if os.path.exists(save_path+"_Model.pkl"):
-    model.load_state_dict(torch.load(save_path+"_Model.pkl"))
 optimizer=optim.Adam(model.parameters(),lr=LEARNING_RATE)
-if os.path.exists(save_path+"_Optimizer.pkl"):
+if os.path.exists(save_path+"_Model.pkl") and os.path.exists(save_path+"_Optimizer.pkl"):
+    print("Load model and optimizer from file")
+    model.load_state_dict(torch.load(save_path+"_Model.pkl"))
     optimizer.load_state_dict(torch.load(save_path+"_Optimizer.pkl"))
-
+else:
+    print("No model and optimizer file, train from scratch")
 
 #数据清洗：丢弃行，或用上一行的值填充
 def data_wash(dataset,keepTime=False):
@@ -269,6 +267,7 @@ def train(epoch):
     global loss_list
     global iteration
     dataloader=DataLoader(dataset=stock_train,batch_size=BATCH_SIZE,shuffle=False,drop_last=True)
+    subbar = tqdm(total=len(dataloader), leave=False)
     for i,(data,label) in enumerate(dataloader):
         iteration=iteration+1
         data,label = data.to(device),label.to(device)
@@ -277,18 +276,19 @@ def train(epoch):
         loss=criterion(output,label)
         loss.backward()        
         optimizer.step()
-        pbar.set_description("ep=%d,iter=%d,lo=%.4f,tl=%.4f"%(epoch,iteration,loss.item(),test_loss))
-        pbar.update(20)
+        subbar.set_description("iter=%d,lo=%.4f"%(iteration,loss.item()))
+        subbar.update(1)
         if i%20==0:
             loss_list.append(loss.item())
             # print("epoch=",epoch,"iteration=",iteration,"loss=",loss.item())
         if iteration%SAVE_NUM==0:
             torch.save(model.state_dict(),save_path+"_Model.pkl")
             torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
+    subbar.close()
 
 def test():
     model.eval()
-    global accuracy_list, predict_list, test_loss
+    global accuracy_list, predict_list, test_loss, loss
     dataloader=DataLoader(dataset=stock_test,batch_size=BATCH_SIZE,shuffle=False,drop_last=True)
     for i,(data,label) in enumerate(dataloader):
         with torch.no_grad():            
@@ -325,7 +325,7 @@ def contrast_lines(predict_list):
             prediction_list.append(np.array((item[idx]*std_list[0]+mean_list[0])))
     x=np.linspace(1,len(real_list),len(real_list))
     plt.plot(x,np.array(real_list),label="real")
-    plt.plot(x,np.array(prediction_list),label="prediction")
+    # plt.plot(x,np.array(prediction_list),label="prediction")
     plt.legend()
     plt.savefig(cnname+"_Pre.png",dpi=3000)
     # plt.show()
@@ -347,12 +347,14 @@ if __name__=="__main__":
     loss_list=[]
     #开始训练神经网络
     print("Start training the model...")
-    pbar = tqdm(total=len(stock_train)*EPOCH)
+    pbar = tqdm(total=EPOCH, leave=False)
     for epoch in range(0,EPOCH):
         predict_list=[]
         accuracy_list=[]
         train(epoch+1)
         test()
+        pbar.set_description("ep=%d,lo=%.4f,tl=%.4f"%(epoch+1,loss.item(),test_loss))
+        pbar.update(1)
     pbar.close()
     print("Training finished!")
     print("Create the png for loss")
