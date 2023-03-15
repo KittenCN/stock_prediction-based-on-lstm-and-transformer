@@ -27,45 +27,49 @@ test_path="./stock_handle/stock_test.csv"
 
 #完成数据集类
 class Stock_Data(Dataset):
-    def __init__(self,train=True,transform=None,dataFrame=None):        
-        if train==True:
-            if dataFrame is None:
-                with open(train_path) as f:
-                    self.data = np.loadtxt(f,delimiter = ",")
-                    #可以注释
-                    #addi=np.zeros((self.data.shape[0],1))
-                    #self.data=np.concatenate((self.data,addi),axis=1)
+    def __init__(self,train=True,transform=None,dataFrame=None):       
+        try:
+            if train==True:
+                if dataFrame is None:
+                    with open(train_path) as f:
+                        self.data = np.loadtxt(f,delimiter = ",")
+                        #可以注释
+                        #addi=np.zeros((self.data.shape[0],1))
+                        #self.data=np.concatenate((self.data,addi),axis=1)
+                else:
+                    self.data=dataFrame.values
+                self.data=self.data[:,0:8]
+                for i in range(len(self.data[0])):
+                    mean_list.append(np.mean(self.data[:,i]))
+                    std_list.append(np.std(self.data[:,i]))
+                    self.data[:,i]=(self.data[:,i]-np.mean(self.data[:,i]))/(np.std(self.data[:,i])+1e-8)
+                self.value=torch.rand(self.data.shape[0]-SEQ_LEN,SEQ_LEN,self.data.shape[1])
+                self.label=torch.rand(self.data.shape[0]-SEQ_LEN,1)
+                for i in range(self.data.shape[0]-SEQ_LEN):                  
+                    self.value[i,:,:]=torch.from_numpy(self.data[i:i+SEQ_LEN,:].reshape(SEQ_LEN,self.data.shape[1]))    
+                    self.label[i,:]=self.data[i+SEQ_LEN,0]
+                self.data=self.value
             else:
-                self.data=dataFrame.values
-            self.data=self.data[:,0:8]
-            for i in range(len(self.data[0])):
-                mean_list.append(np.mean(self.data[:,i]))
-                std_list.append(np.std(self.data[:,i]))
-                self.data[:,i]=(self.data[:,i]-np.mean(self.data[:,i]))/(np.std(self.data[:,i])+1e-8)
-            self.value=torch.rand(self.data.shape[0]-SEQ_LEN,SEQ_LEN,self.data.shape[1])
-            self.label=torch.rand(self.data.shape[0]-SEQ_LEN,1)
-            for i in range(self.data.shape[0]-SEQ_LEN):                  
-                self.value[i,:,:]=torch.from_numpy(self.data[i:i+SEQ_LEN,:].reshape(SEQ_LEN,self.data.shape[1]))    
-                self.label[i,:]=self.data[i+SEQ_LEN,0]
-            self.data=self.value
-        else:
-            if dataFrame is None:
-                with open(test_path) as f:
-                    self.data = np.loadtxt(f,delimiter = ",")
-                    #可以注释
-                    #addi=np.zeros((self.data.shape[0],1))
-                    #self.data=np.concatenate((self.data,addi),axis=1)
-            else:
-                self.data=dataFrame.values
-            self.data=self.data[:,0:8]
-            for i in range(len(self.data[0])):
-                self.data[:,i]=(self.data[:,i]-mean_list[i])/(std_list[i]+1e-8)
-            self.value=torch.rand(self.data.shape[0]-SEQ_LEN,SEQ_LEN,self.data.shape[1])
-            self.label=torch.rand(self.data.shape[0]-SEQ_LEN,1)
-            for i in range(self.data.shape[0]-SEQ_LEN):                  
-                self.value[i,:,:]=torch.from_numpy(self.data[i:i+SEQ_LEN,:].reshape(SEQ_LEN,self.data.shape[1]))    
-                self.label[i,:]=self.data[i+SEQ_LEN,0]
-            self.data=self.value
+                if dataFrame is None:
+                    with open(test_path) as f:
+                        self.data = np.loadtxt(f,delimiter = ",")
+                        #可以注释
+                        #addi=np.zeros((self.data.shape[0],1))
+                        #self.data=np.concatenate((self.data,addi),axis=1)
+                else:
+                    self.data=dataFrame.values
+                self.data=self.data[:,0:8]
+                for i in range(len(self.data[0])):
+                    self.data[:,i]=(self.data[:,i]-mean_list[i])/(std_list[i]+1e-8)
+                self.value=torch.rand(self.data.shape[0]-SEQ_LEN,SEQ_LEN,self.data.shape[1])
+                self.label=torch.rand(self.data.shape[0]-SEQ_LEN,1)
+                for i in range(self.data.shape[0]-SEQ_LEN):                  
+                    self.value[i,:,:]=torch.from_numpy(self.data[i:i+SEQ_LEN,:].reshape(SEQ_LEN,self.data.shape[1]))    
+                    self.label[i,:]=self.data[i+SEQ_LEN,0]
+                self.data=self.value
+        except Exception as e:
+            print(e)
+            return None
     def __getitem__(self,index):
         return self.data[index],self.label[index]
     def __len__(self):

@@ -243,6 +243,8 @@ if __name__=="__main__":
             continue
         Train_data=data[:train_size+common.SEQ_LEN]
         Test_data=data[train_size-common.SEQ_LEN:]
+        if Train_data is None or Test_data is None:
+            continue
         # Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
         # Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
         stock_train=common.Stock_Data(train=True, dataFrame=Train_data)
