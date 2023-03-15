@@ -137,11 +137,12 @@ def train(epoch):
         if i%20==0:
             loss_list.append(loss.item())
             # print("epoch=",epoch,"iteration=",iteration,"loss=",loss.item())
-        if iteration%common.SAVE_NUM==0:
+        if iteration%common.SAVE_NUM_ITER==0:
             torch.save(model.state_dict(),save_path+"_Model.pkl")
             torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
-    torch.save(model.state_dict(),save_path+"_Model.pkl")
-    torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
+    if (epoch+1)%common.SAVE_NUM_EPOCH==0:
+        torch.save(model.state_dict(),save_path+"_Model.pkl")
+        torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
     subbar.close()
 
 def test():
@@ -227,6 +228,7 @@ if __name__=="__main__":
         ts_codes = [symbol]
     code_bar = tqdm(total=len(ts_codes))
     for ts_code in ts_codes:
+        code_bar.set_description("Processing %s" % ts_code)
         if common.GET_DATA:
             dataFrame = get_stock_data(ts_code, False)
         data = import_csv(ts_code, dataFrame)
