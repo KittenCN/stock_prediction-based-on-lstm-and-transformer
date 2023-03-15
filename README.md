@@ -123,5 +123,4 @@ LSTM模型训练过程中MSELoss的变化，可以看到随着训练代数的增
 
 在项目开展过程当中，也采用过比LSTM更加新提出的Transformer模型，但对测试集的预测效果并不好，后期分析认为可能是由于在一般Transformer模型中由encoder和对应的decoder层，但在本项目的模型中使用了全连接层代替decoder，所以导致效果不佳。在后序的研究中，可以进一步改进，或许可以得到比LSTM更加优化的结果。
 
-**github下载链接**:https://github.com/MiaoChenglin125/stock_prediction-based-on-lstm-and-transformer
 
