@@ -11,6 +11,7 @@ LEARNING_RATE=0.00001
 BATCH_SIZE=64
 EPOCH=10
 SAVE_NUM=100
+GET_DATA=True
 
 mean_list=[]
 std_list=[]

@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import os
-from getdata import get_stock_list
+from getdata import get_stock_list, get_stock_data
 from tqdm import tqdm
 from cycler import cycler# 用于定制线条颜色
 from torch.utils.data import DataLoader
@@ -226,6 +226,8 @@ if __name__=="__main__":
         ts_codes = [symbol]
     code_bar = tqdm(total=len(ts_codes))
     for ts_code in ts_codes:
+        if common.GET_DATA:
+            get_stock_data(ts_code)
         data = import_csv(ts_code)
         if data is None:
             continue
