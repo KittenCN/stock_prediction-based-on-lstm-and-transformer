@@ -4,7 +4,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn
 import mplfinance as mpf
 import matplotlib as mpl# 用于设置曲线参数
 from cycler import cycler# 用于定制线条颜色
@@ -22,7 +21,7 @@ TRAIN_WEIGHT=0.9
 SEQ_LEN=99
 LEARNING_RATE=0.00001
 BATCH_SIZE=32
-EPOCH=1
+EPOCH=100
 SAVE_NUM=100
 
 mean_list=[]
@@ -134,16 +133,9 @@ stock_train=Stock_Data(train=True)
 stock_test=Stock_Data(train=False)
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#train_size=int(TRAIN_WEIGHT*(data.shape[0]))
 train_path="stock_daily/stock_train.csv"
 test_path="stock_daily/stock_test.csv"
-#Train_data=data[:train_size+SEQ_LEN]
-#Test_data=data[train_size-SEQ_LEN:]
-#Train_data.to_csv(train_path,sep=',',index=False,header=False)
-#Test_data.to_csv(test_path,sep=',',index=False,header=False)
 
-# lstm_path="./model_lstm/epoch_"
-# transformer_path="./model_transformer/epoch_"
 symbol = '600975.SH'
 cnname = ""
 for item in symbol.split("."):
@@ -155,21 +147,25 @@ transformer_path="./"+cnname+"/TRANSFORMER"
 save_path=lstm_path
 
 #选择模型为LSTM或Transformer，注释掉一个
-model=LSTM(dimension=8)
-save_path=lstm_path
-#model=TransAm(feature_size=8)
-#save_path=transformer_path
+model_mode="LSTM"
+if model_mode=="LSTM":
+    model=LSTM(dimension=8)
+    save_path=lstm_path
+elif model_mode=="TRANSFORMER":
+    model=TransAm(feature_size=8)
+    save_path=transformer_path
 
 model=model.to(device)
+print(model)
 criterion=nn.MSELoss()
 
 test_loss = 0.00
 
-if os.path.exists("./"+cnname+"/LSTM_Model.pkl"):
-    model.load_state_dict(torch.load("./"+cnname+"/LSTM_Model.pkl"))
+if os.path.exists(save_path+"_Model.pkl"):
+    model.load_state_dict(torch.load(save_path+"_Model.pkl"))
 optimizer=optim.Adam(model.parameters(),lr=LEARNING_RATE)
-if os.path.exists("./"+cnname+"/LSTM_Optimizer.pkl"):
-    optimizer.load_state_dict(torch.load("./"+cnname+"/LSTM_Optimizer.pkl"))
+if os.path.exists(save_path+"_Optimizer.pkl"):
+    optimizer.load_state_dict(torch.load(save_path+"_Optimizer.pkl"))
 
 
 #数据清洗：丢弃行，或用上一行的值填充
@@ -336,11 +332,13 @@ def contrast_lines(predict_list):
 
 if __name__=="__main__":
     period = 100
+    print("Clean the data...")
     data = import_csv(symbol)
     df_draw=data[-period:]
     # draw_Kline(df_draw,period,symbol)
     data.drop(['ts_code','Date'],axis=1,inplace = True)    
     train_size=int(TRAIN_WEIGHT*(data.shape[0]))
+    print("Split the data for trainning and testing...")
     Train_data=data[:train_size+SEQ_LEN]
     Test_data=data[train_size-SEQ_LEN:]
     Train_data.to_csv(train_path,sep=',',index=False,header=False)
@@ -348,15 +346,19 @@ if __name__=="__main__":
     iteration=0
     loss_list=[]
     #开始训练神经网络
-    pbar = tqdm(total=len(stock_train)//BATCH_SIZE*EPOCH)
-    for epoch in range(1,EPOCH+1):
+    print("Start training the model...")
+    pbar = tqdm(total=len(stock_train)*EPOCH)
+    for epoch in range(0,EPOCH):
         predict_list=[]
         accuracy_list=[]
-        train(epoch)
+        train(epoch+1)
         test()
     pbar.close()
+    print("Training finished!")
+    print("Create the png for loss")
     #绘制损失函数下降曲线    
     loss_curve(loss_list)
+    print("Create the png for pred-real")
     #绘制测试集pred-real对比曲线
     contrast_lines(predict_list)
 
