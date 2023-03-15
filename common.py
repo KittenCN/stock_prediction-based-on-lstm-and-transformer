@@ -26,14 +26,17 @@ test_path="./stock_handle/stock_test.csv"
 
 #完成数据集类
 class Stock_Data(Dataset):
-    def __init__(self,train=True,transform=None):        
+    def __init__(self,train=True,transform=None,dataFrame=None):        
         if train==True:
-            with open(train_path) as f:
-                self.data = np.loadtxt(f,delimiter = ",")
-                #可以注释
-                #addi=np.zeros((self.data.shape[0],1))
-                #self.data=np.concatenate((self.data,addi),axis=1)
-                self.data=self.data[:,0:8]
+            if dataFrame is None:
+                with open(train_path) as f:
+                    self.data = np.loadtxt(f,delimiter = ",")
+                    #可以注释
+                    #addi=np.zeros((self.data.shape[0],1))
+                    #self.data=np.concatenate((self.data,addi),axis=1)
+            else:
+                self.data=dataFrame.values
+            self.data=self.data[:,0:8]
             for i in range(len(self.data[0])):
                 mean_list.append(np.mean(self.data[:,i]))
                 std_list.append(np.std(self.data[:,i]))
@@ -45,11 +48,15 @@ class Stock_Data(Dataset):
                 self.label[i,:]=self.data[i+SEQ_LEN,0]
             self.data=self.value
         else:
-            with open(test_path) as f:
-                self.data = np.loadtxt(f,delimiter = ",")
-                #addi=np.zeros((self.data.shape[0],1))
-                #self.data=np.concatenate((self.data,addi),axis=1)
-                self.data=self.data[:,0:8]
+            if dataFrame is None:
+                with open(test_path) as f:
+                    self.data = np.loadtxt(f,delimiter = ",")
+                    #可以注释
+                    #addi=np.zeros((self.data.shape[0],1))
+                    #self.data=np.concatenate((self.data,addi),axis=1)
+            else:
+                self.data=dataFrame.values
+            self.data=self.data[:,0:8]
             for i in range(len(self.data[0])):
                 self.data[:,i]=(self.data[:,i]-mean_list[i])/(std_list[i]+1e-8)
             self.value=torch.rand(self.data.shape[0]-SEQ_LEN,SEQ_LEN,self.data.shape[1])

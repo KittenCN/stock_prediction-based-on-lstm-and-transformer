@@ -239,10 +239,10 @@ if __name__=="__main__":
         # print("Split the data for trainning and testing...")
         Train_data=data[:train_size+common.SEQ_LEN]
         Test_data=data[train_size-common.SEQ_LEN:]
-        Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
-        Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
-        stock_train=common.Stock_Data(train=True)
-        stock_test=common.Stock_Data(train=False)
+        # Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
+        # Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
+        stock_train=common.Stock_Data(train=True, dataFrame=Train_data)
+        stock_test=common.Stock_Data(train=False, dataFrame=Test_data)
         iteration=0
         loss_list=[]
         #开始训练神经网络

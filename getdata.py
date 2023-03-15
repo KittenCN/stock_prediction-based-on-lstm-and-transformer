@@ -40,6 +40,19 @@ def get_stock_data(ts_code="", save=True):
             "high",
             "low",
             "close",
+            "pre_close",
+            "change",
+            "pct_chg",
+            "vol",
+            "amount"
+        ])
+        df = df.reindex(columns=[
+            "ts_code",
+            "trade_date",
+            "open",
+            "high",
+            "low",
+            "close",
             "change",
             "pct_chg",
             "vol",
@@ -58,4 +71,4 @@ def get_stock_data(ts_code="", save=True):
 if __name__ == "__main__":
     if os.path.exists("./stock_daily") == False:
         os.mkdir("./stock_daily")
-    get_stock_data()
+    get_stock_data("000001.SZ", save=True)
