@@ -185,9 +185,6 @@ def contrast_lines(predict_list):
     # plt.show()
 
 if __name__=="__main__":
-    stock_train=common.Stock_Data(train=True)
-    stock_test=common.Stock_Data(train=False)
-
     symbol = 'Generic.Data'
     cnname = ""
     for item in symbol.split("."):
@@ -240,6 +237,8 @@ if __name__=="__main__":
         Test_data=data[train_size-common.SEQ_LEN:]
         Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
         Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
+        stock_train=common.Stock_Data(train=True)
+        stock_test=common.Stock_Data(train=False)
         iteration=0
         loss_list=[]
         #开始训练神经网络
