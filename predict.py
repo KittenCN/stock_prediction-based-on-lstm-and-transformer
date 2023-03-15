@@ -119,6 +119,7 @@ def draw_Kline(df,period,symbol):
     plt.show()
 
 def train(epoch):
+    global loss
     model.train()
     global loss_list
     global iteration
@@ -190,7 +191,8 @@ def contrast_lines(predict_list):
     # plt.show()
 
 if __name__=="__main__":
-    symbol = 'Generic.Data'
+    # symbol = 'Generic.Data'
+    symbol = '000038.SZ'
     cnname = ""
     for item in symbol.split("."):
         cnname += item
