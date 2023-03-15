@@ -51,6 +51,6 @@ def get_stock_data(ts_code=""):
     pbar.close()
 
 if __name__ == "__main__":
-    if os.path.exists("./stock_daily"):
+    if os.path.exists("./stock_daily") == False:
         os.mkdir("./stock_daily")
     get_stock_data()
