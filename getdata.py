@@ -22,7 +22,7 @@ def get_stock_list(ts_code=""):
     # print(stock_list)
     return stock_list
 
-def get_stock_data(ts_code=""):
+def get_stock_data(ts_code="", save=True):
     stock_list = get_stock_list(ts_code)
     pbar = tqdm(total=len(stock_list), leave=False)
     for code in stock_list:
@@ -46,9 +46,14 @@ def get_stock_data(ts_code=""):
             "amount",
             "pre_close"
         ])
-        df.to_csv("./stock_daily/"+code+".csv", index=False)
+        if save:
+            df.to_csv("./stock_daily/"+code+".csv", index=False)
         pbar.update(1)
     pbar.close()
+    if save == False:
+        return df
+    else:
+        return None
 
 if __name__ == "__main__":
     if os.path.exists("./stock_daily") == False:

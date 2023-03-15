@@ -24,24 +24,26 @@ def data_wash(dataset,keepTime=False):
         dataset.dropna()
     return dataset
 
-def import_csv(stock_code):
+def import_csv(stock_code, dataFrame=None):
     #time设为index的同时是否保留时间列
-    if os.path.exists('stock_daily/'+stock_code + '.csv'):
+    if os.path.exists('stock_daily/'+stock_code + '.csv') and dataFrame is None:
         df = pd.read_csv('stock_daily/'+stock_code + '.csv')
-        #清洗数据
-        df=data_wash(df,keepTime=False)
-        df.rename(
-                columns={
-                'trade_date': 'Date', 'open': 'Open', 
-                'high': 'High', 'low': 'Low', 
-                'close': 'Close', 'vol': 'Volume'}, 
-                inplace=True)
-        df['Date'] = pd.to_datetime(df['Date'],format='%Y%m%d')    
-        df.set_index(df['Date'], inplace=True)
-        return df
-    else:
+    elif os.path.exists('stock_daily/'+stock_code + '.csv') == False and dataFrame is None:
         # print('stock_daily/'+stock_code + '.csv'+' not exist')
         return None
+    elif dataFrame is not None:
+        df = dataFrame
+    #清洗数据
+    df=data_wash(df,keepTime=False)
+    df.rename(
+            columns={
+            'trade_date': 'Date', 'open': 'Open', 
+            'high': 'High', 'low': 'Low', 
+            'close': 'Close', 'vol': 'Volume'}, 
+            inplace=True)
+    df['Date'] = pd.to_datetime(df['Date'],format='%Y%m%d')    
+    df.set_index(df['Date'], inplace=True)
+    return df
 
 def draw_Kline(df,period,symbol):
 
@@ -226,8 +228,8 @@ if __name__=="__main__":
     code_bar = tqdm(total=len(ts_codes))
     for ts_code in ts_codes:
         if common.GET_DATA:
-            get_stock_data(ts_code)
-        data = import_csv(ts_code)
+            dataFrame = get_stock_data(ts_code, False)
+        data = import_csv(ts_code, dataFrame)
         if data is None:
             continue
         df_draw=data[-period:]
