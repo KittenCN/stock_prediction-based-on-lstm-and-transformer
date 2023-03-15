@@ -6,165 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import matplotlib as mpl# 用于设置曲线参数
-from cycler import cycler# 用于定制线条颜色
+import common
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset,DataLoader
-import math
-import numpy as np
 import os
+from getdata import get_stock_list
 from tqdm import tqdm
-
-#读取数据切割数据集并保存
-TRAIN_WEIGHT=0.9
-SEQ_LEN=99
-LEARNING_RATE=0.00001
-BATCH_SIZE=64
-EPOCH=10
-SAVE_NUM=100
-
-mean_list=[]
-std_list=[]
-
-#完成数据集类
-class Stock_Data(Dataset):
-
-    def __init__(self,train=True,transform=None):        
-        if train==True:
-            train_path="stock_daily/stock_train.csv"
-            with open(train_path) as f:
-                self.data = np.loadtxt(f,delimiter = ",")
-                #可以注释
-                #addi=np.zeros((self.data.shape[0],1))
-                #self.data=np.concatenate((self.data,addi),axis=1)
-                self.data=self.data[:,0:8]
-            for i in range(len(self.data[0])):
-                mean_list.append(np.mean(self.data[:,i]))
-                std_list.append(np.std(self.data[:,i]))
-                self.data[:,i]=(self.data[:,i]-np.mean(self.data[:,i]))/(np.std(self.data[:,i])+1e-8)
-            self.value=torch.rand(self.data.shape[0]-SEQ_LEN,SEQ_LEN,self.data.shape[1])
-            self.label=torch.rand(self.data.shape[0]-SEQ_LEN,1)
-            for i in range(self.data.shape[0]-SEQ_LEN):                  
-                self.value[i,:,:]=torch.from_numpy(self.data[i:i+SEQ_LEN,:].reshape(SEQ_LEN,self.data.shape[1]))    
-                self.label[i,:]=self.data[i+SEQ_LEN,0]
-            self.data=self.value
-        else:
-            test_path="stock_daily/stock_test.csv"
-            with open(test_path) as f:
-                self.data = np.loadtxt(f,delimiter = ",")
-                #addi=np.zeros((self.data.shape[0],1))
-                #self.data=np.concatenate((self.data,addi),axis=1)
-                self.data=self.data[:,0:8]
-            for i in range(len(self.data[0])):
-                self.data[:,i]=(self.data[:,i]-mean_list[i])/(std_list[i]+1e-8)
-            self.value=torch.rand(self.data.shape[0]-SEQ_LEN,SEQ_LEN,self.data.shape[1])
-            self.label=torch.rand(self.data.shape[0]-SEQ_LEN,1)
-            for i in range(self.data.shape[0]-SEQ_LEN):                  
-                self.value[i,:,:]=torch.from_numpy(self.data[i:i+SEQ_LEN,:].reshape(SEQ_LEN,self.data.shape[1]))    
-                self.label[i,:]=self.data[i+SEQ_LEN,0]
-            self.data=self.value
-    def __getitem__(self,index):
-        return self.data[index],self.label[index]
-    def __len__(self):
-        return len(self.data[:,0])
-#LSTM模型
-class LSTM(nn.Module):
-
-    def __init__(self,dimension):
-        super(LSTM,self).__init__()
-        self.lstm=nn.LSTM(input_size=dimension,hidden_size=128,num_layers=3,batch_first=True)
-        self.linear1=nn.Linear(in_features=128,out_features=16)
-        self.linear2=nn.Linear(16,1)
-    def forward(self,x):
-        out,_=self.lstm(x)
-        x=out[:,-1,:]        
-        x=self.linear1(x)
-        x=self.linear2(x)
-        return x
-#传入tensor进行位置编码
-class PositionalEncoding(nn.Module):
-    def __init__(self,d_model,max_len=SEQ_LEN):
-        super(PositionalEncoding,self).__init__()
-        #序列长度，dimension d_model
-        pe=torch.zeros(max_len,d_model)
-        position=torch.arange(0,max_len,dtype=torch.float).unsqueeze(1)
-        div_term=torch.exp(torch.arange(0,d_model,2).float()*(-math.log(10000.0)/d_model))
-        pe[:,0::2]=torch.sin(position*div_term)
-        pe[:,1::2]=torch.cos(position*div_term)
-        pe=pe.unsqueeze(0).transpose(0,1)
-        self.register_buffer('pe',pe)
-        
-    def forward(self,x):
-        return x+self.pe[:x.size(0),:]
-
-class TransAm(nn.Module):
-    def __init__(self,feature_size=8,num_layers=6,dropout=0.1):
-        super(TransAm,self).__init__()
-        self.model_type='Transformer'
-        self.src_mask=None
-        self.pos_encoder=PositionalEncoding(feature_size)
-        self.encoder_layer=nn.TransformerEncoderLayer(d_model=feature_size,nhead=8,dropout=dropout)
-        self.transformer_encoder=nn.TransformerEncoder(self.encoder_layer,num_layers=num_layers)
-        #全连接层代替decoder
-        self.decoder=nn.Linear(feature_size,1)
-        self.linear1=nn.Linear(SEQ_LEN,1)
-        self.init_weights()
-        self.src_key_padding_mask=None
-    
-    def init_weights(self):
-        initrange=0.1
-        self.decoder.bias.data.zero_()
-        self.decoder.weight.data.uniform_(-initrange,initrange)
-        
-    def forward(self,src,seq_len=SEQ_LEN):       
-        src=self.pos_encoder(src)
-        #print(src)
-        #print(self.src_mask)
-        #print(self.src_key_padding_mask)
-        #output=self.transformer_encoder(src,self.src_mask,self.src_key_padding_mask)
-        output=self.transformer_encoder(src)
-        output=self.decoder(output)
-        output=np.squeeze(output)
-        output=self.linear1(output)
-        return output
-
-stock_train=Stock_Data(train=True)
-stock_test=Stock_Data(train=False)
-
-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-train_path="stock_daily/stock_train.csv"
-test_path="stock_daily/stock_test.csv"
-
-symbol = '600975.SH'
-cnname = ""
-for item in symbol.split("."):
-    cnname += item
-if os.path.exists("./" + cnname) is False:
-    os.makedirs("./" + cnname)
-lstm_path="./"+cnname+"/LSTM"
-transformer_path="./"+cnname+"/TRANSFORMER"
-save_path=lstm_path
-
-#选择模型为LSTM或Transformer，注释掉一个
-model_mode="LSTM"
-if model_mode=="LSTM":
-    model=LSTM(dimension=8)
-    save_path=lstm_path
-elif model_mode=="TRANSFORMER":
-    model=TransAm(feature_size=8)
-    save_path=transformer_path
-
-model=model.to(device)
-print(model)
-criterion=nn.MSELoss()
-optimizer=optim.Adam(model.parameters(),lr=LEARNING_RATE)
-if os.path.exists(save_path+"_Model.pkl") and os.path.exists(save_path+"_Optimizer.pkl"):
-    print("Load model and optimizer from file")
-    model.load_state_dict(torch.load(save_path+"_Model.pkl"))
-    optimizer.load_state_dict(torch.load(save_path+"_Optimizer.pkl"))
-else:
-    print("No model and optimizer file, train from scratch")
+from cycler import cycler# 用于定制线条颜色
+from torch.utils.data import DataLoader
 
 #数据清洗：丢弃行，或用上一行的值填充
 def data_wash(dataset,keepTime=False):
@@ -176,18 +26,22 @@ def data_wash(dataset,keepTime=False):
 
 def import_csv(stock_code):
     #time设为index的同时是否保留时间列
-    df = pd.read_csv('stock_daily/'+stock_code + '.csv')
-    #清洗数据
-    df=data_wash(df,keepTime=False)
-    df.rename(
-            columns={
-            'trade_date': 'Date', 'open': 'Open', 
-            'high': 'High', 'low': 'Low', 
-            'close': 'Close', 'vol': 'Volume'}, 
-            inplace=True)
-    df['Date'] = pd.to_datetime(df['Date'],format='%Y%m%d')    
-    df.set_index(df['Date'], inplace=True)
-    return df
+    if os.path.exists('stock_daily/'+stock_code + '.csv'):
+        df = pd.read_csv('stock_daily/'+stock_code + '.csv')
+        #清洗数据
+        df=data_wash(df,keepTime=False)
+        df.rename(
+                columns={
+                'trade_date': 'Date', 'open': 'Open', 
+                'high': 'High', 'low': 'Low', 
+                'close': 'Close', 'vol': 'Volume'}, 
+                inplace=True)
+        df['Date'] = pd.to_datetime(df['Date'],format='%Y%m%d')    
+        df.set_index(df['Date'], inplace=True)
+        return df
+    else:
+        # print('stock_daily/'+stock_code + '.csv'+' not exist')
+        return None
 
 def draw_Kline(df,period,symbol):
 
@@ -266,11 +120,11 @@ def train(epoch):
     model.train()
     global loss_list
     global iteration
-    dataloader=DataLoader(dataset=stock_train,batch_size=BATCH_SIZE,shuffle=False,drop_last=True)
+    dataloader=DataLoader(dataset=stock_train,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True)
     subbar = tqdm(total=len(dataloader), leave=False)
     for i,(data,label) in enumerate(dataloader):
         iteration=iteration+1
-        data,label = data.to(device),label.to(device)
+        data,label = data.to(common.device),label.to(common.device)
         optimizer.zero_grad()
         output=model.forward(data)
         loss=criterion(output,label)
@@ -281,7 +135,7 @@ def train(epoch):
         if i%20==0:
             loss_list.append(loss.item())
             # print("epoch=",epoch,"iteration=",iteration,"loss=",loss.item())
-        if iteration%SAVE_NUM==0:
+        if iteration%common.SAVE_NUM==0:
             torch.save(model.state_dict(),save_path+"_Model.pkl")
             torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
     subbar.close()
@@ -289,10 +143,10 @@ def train(epoch):
 def test():
     model.eval()
     global accuracy_list, predict_list, test_loss, loss
-    dataloader=DataLoader(dataset=stock_test,batch_size=BATCH_SIZE,shuffle=False,drop_last=True)
+    dataloader=DataLoader(dataset=stock_test,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True)
     for i,(data,label) in enumerate(dataloader):
         with torch.no_grad():            
-            data,label=data.to(device),label.to(device)
+            data,label=data.to(common.device),label.to(common.device)
             optimizer.zero_grad()
             predict=model.forward(data)
             predict_list.append(predict)
@@ -309,60 +163,104 @@ def loss_curve(loss_list):
     plt.plot(x,np.array(loss_list),label="train_loss")
     plt.ylabel("MSELoss")
     plt.xlabel("iteration")
-    plt.savefig("train_loss.png",dpi=3000)
+    plt.savefig("./png/train_loss/"+cnname+"_train_loss.png",dpi=3000)
     # plt.show()
 
 def contrast_lines(predict_list):
     real_list=[]
     prediction_list=[]
-    dataloader=DataLoader(dataset=stock_test,batch_size=BATCH_SIZE,shuffle=False,drop_last=True)
+    dataloader=DataLoader(dataset=stock_test,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True)
     for i,(data,label) in enumerate(dataloader):
-        for idx in range(BATCH_SIZE):
-            real_list.append(np.array(label[idx]*std_list[0]+mean_list[0]))
+        for idx in range(common.BATCH_SIZE):
+            real_list.append(np.array(label[idx]*common.std_list[0]+common.mean_list[0]))
     for item in predict_list:
         item=item.to("cpu")
-        for idx in range(BATCH_SIZE):
-            prediction_list.append(np.array((item[idx]*std_list[0]+mean_list[0])))
+        for idx in range(common.BATCH_SIZE):
+            prediction_list.append(np.array((item[idx]*common.std_list[0]+common.mean_list[0])))
     x=np.linspace(1,len(real_list),len(real_list))
     plt.plot(x,np.array(real_list),label="real")
     # plt.plot(x,np.array(prediction_list),label="prediction")
     plt.legend()
-    plt.savefig(cnname+"_Pre.png",dpi=3000)
+    plt.savefig("./png/predict/"+cnname+"_Pre.png",dpi=3000)
     # plt.show()
 
 if __name__=="__main__":
+    stock_train=common.Stock_Data(train=True)
+    stock_test=common.Stock_Data(train=False)
+
+    symbol = 'Generic.Data'
+    cnname = ""
+    for item in symbol.split("."):
+        cnname += item
+    if os.path.exists("./" + cnname) is False:
+        os.makedirs("./" + cnname)
+    lstm_path="./"+cnname+"/LSTM"
+    transformer_path="./"+cnname+"/TRANSFORMER"
+    save_path=lstm_path
+
+    #选择模型为LSTM或Transformer，注释掉一个
+    model_mode="LSTM"
+    if model_mode=="LSTM":
+        model=common.LSTM(dimension=8)
+        save_path=lstm_path
+    elif model_mode=="TRANSFORMER":
+        model=common.TransAm(feature_size=8)
+        save_path=transformer_path
+
+    model=model.to(common.device)
+    print(model)
+    criterion=nn.MSELoss()
+    optimizer=optim.Adam(model.parameters(),lr=common.LEARNING_RATE)
+    if os.path.exists(save_path+"_Model.pkl") and os.path.exists(save_path+"_Optimizer.pkl"):
+        print("Load model and optimizer from file")
+        model.load_state_dict(torch.load(save_path+"_Model.pkl"))
+        optimizer.load_state_dict(torch.load(save_path+"_Optimizer.pkl"))
+    else:
+        print("No model and optimizer file, train from scratch")
+
     period = 100
     print("Clean the data...")
-    data = import_csv(symbol)
-    df_draw=data[-period:]
-    # draw_Kline(df_draw,period,symbol)
-    data.drop(['ts_code','Date'],axis=1,inplace = True)    
-    train_size=int(TRAIN_WEIGHT*(data.shape[0]))
-    print("Split the data for trainning and testing...")
-    Train_data=data[:train_size+SEQ_LEN]
-    Test_data=data[train_size-SEQ_LEN:]
-    Train_data.to_csv(train_path,sep=',',index=False,header=False)
-    Test_data.to_csv(test_path,sep=',',index=False,header=False)
-    iteration=0
-    loss_list=[]
-    #开始训练神经网络
-    print("Start training the model...")
-    pbar = tqdm(total=EPOCH, leave=False)
-    for epoch in range(0,EPOCH):
-        predict_list=[]
-        accuracy_list=[]
-        train(epoch+1)
-        test()
-        pbar.set_description("ep=%d,lo=%.4f,tl=%.4f"%(epoch+1,loss.item(),test_loss))
-        pbar.update(1)
-    pbar.close()
+    if symbol == 'Generic.Data':
+        ts_codes = get_stock_list()
+    else:
+        ts_codes = [symbol]
+    code_bar = tqdm(total=len(ts_codes))
+    for ts_code in ts_codes:
+        data = import_csv(ts_code)
+        if data is None:
+            continue
+        df_draw=data[-period:]
+        # draw_Kline(df_draw,period,symbol)
+        data.drop(['ts_code','Date'],axis=1,inplace = True)    
+        train_size=int(common.TRAIN_WEIGHT*(data.shape[0]))
+        # print("Split the data for trainning and testing...")
+        Train_data=data[:train_size+common.SEQ_LEN]
+        Test_data=data[train_size-common.SEQ_LEN:]
+        Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
+        Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
+        iteration=0
+        loss_list=[]
+        #开始训练神经网络
+        # print("Start training the model...")
+        pbar = tqdm(total=common.EPOCH, leave=False)
+        for epoch in range(0,common.EPOCH):
+            predict_list=[]
+            accuracy_list=[]
+            train(epoch+1)
+            test()
+            pbar.set_description("ep=%d,lo=%.4f,tl=%.4f"%(epoch+1,loss.item(),test_loss))
+            pbar.update(1)
+        pbar.close()
+        code_bar.update(1)
     print("Training finished!")
-    print("Create the png for loss")
-    #绘制损失函数下降曲线    
-    loss_curve(loss_list)
-    print("Create the png for pred-real")
-    #绘制测试集pred-real对比曲线
-    contrast_lines(predict_list)
+    code_bar.close()
+
+    # print("Create the png for loss")
+    # #绘制损失函数下降曲线    
+    # loss_curve(loss_list)
+    # print("Create the png for pred-real")
+    # #绘制测试集pred-real对比曲线
+    # contrast_lines(predict_list)
 
 
 
