@@ -63,16 +63,17 @@ class Stock_Data(Dataset):
         return len(self.data[:,0])
 #LSTM模型
 class LSTM(nn.Module):
-
     def __init__(self,dimension):
         super(LSTM,self).__init__()
         self.lstm=nn.LSTM(input_size=dimension,hidden_size=128,num_layers=3,batch_first=True)
         self.linear1=nn.Linear(in_features=128,out_features=16)
         self.linear2=nn.Linear(16,1)
+        self.ReLU=nn.ReLU()
     def forward(self,x):
         out,_=self.lstm(x)
         x=out[:,-1,:]        
         x=self.linear1(x)
+        x=self.ReLU(x)
         x=self.linear2(x)
         return x
 #传入tensor进行位置编码
