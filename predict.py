@@ -207,8 +207,8 @@ def load_data(ts_codes):
             common.data_queue.put(data)
 
 if __name__=="__main__":
-    # symbol = 'Generic.Data'
-    symbol = '000001.SZ'
+    symbol = 'Generic.Data'
+    # symbol = '000001.SZ'
     cnname = ""
     for item in symbol.split("."):
         cnname += item
@@ -255,6 +255,9 @@ if __name__=="__main__":
         data = common.data_queue.get()
         if data is None:
             continue
+        if data['ts_code'][0] != ts_code:
+            print("Error: ts_code is not match")
+            exit(0)
         df_draw=data[-period:]
         # draw_Kline(df_draw,period,symbol)
         data.drop(['ts_code','Date'],axis=1,inplace = True)    

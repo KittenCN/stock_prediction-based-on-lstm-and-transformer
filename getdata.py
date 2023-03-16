@@ -92,4 +92,4 @@ def get_stock_data(ts_code="", save=True, start_code=""):
 if __name__ == "__main__":
     if os.path.exists("./stock_daily") == False:
         os.mkdir("./stock_daily")
-    get_stock_data("000038.SZ", save=True)
+    get_stock_data("", save=True)
