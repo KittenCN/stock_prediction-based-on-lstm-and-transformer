@@ -176,7 +176,10 @@ def test(dataloader):
                 accuracy=accuracy_fn(predict,label)
                 accuracy_list.append(accuracy.item())
         # print("test_data MSELoss:(pred-real)/real=",np.mean(accuracy_list))
-        test_loss = np.mean(accuracy_list)
+        if len(accuracy_list) == 0:
+           test_loss = 0.00
+        else:
+            test_loss = np.mean(accuracy_list)
 
 def loss_curve(loss_list):
     x=np.linspace(1,len(loss_list),len(loss_list))
