@@ -248,34 +248,38 @@ if __name__=="__main__":
     data_thread.start()
     code_bar = tqdm(total=len(ts_codes))
     for index, ts_code in enumerate(ts_codes):
-        # if common.GET_DATA:
-        #     dataFrame = get_stock_data(ts_code, False)
-        # data = import_csv(ts_code, dataFrame)
-        data = common.data_queue.get()
-        data_len = common.data_queue.qsize()
-        if data is None:
+        try:
+            # if common.GET_DATA:
+            #     dataFrame = get_stock_data(ts_code, False)
+            # data = import_csv(ts_code, dataFrame)
+            data = common.data_queue.get()
+            data_len = common.data_queue.qsize()
+            if data is None:
+                continue
+            if data['ts_code'][0] != ts_code:
+                print("Error: ts_code is not match")
+                exit(0)
+            code_bar.set_description("%s %d:%d" % (ts_code,index,data_len))
+            df_draw=data[-period:]
+            # draw_Kline(df_draw,period,symbol)
+            data.drop(['ts_code','Date'],axis=1,inplace = True)    
+            train_size=int(common.TRAIN_WEIGHT*(data.shape[0]))
+            # print("Split the data for trainning and testing...")
+            if train_size<common.SEQ_LEN or train_size+common.SEQ_LEN>data.shape[0]:
+                continue
+            Train_data=data[:train_size+common.SEQ_LEN]
+            Test_data=data[train_size-common.SEQ_LEN:]
+            if Train_data is None or Test_data is None:
+                continue
+            # Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
+            # Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
+            stock_train=common.Stock_Data(train=True, dataFrame=Train_data)
+            stock_test=common.Stock_Data(train=False, dataFrame=Test_data)
+            iteration=0
+            loss_list=[]
+        except Exception as e:
+            print(e)
             continue
-        if data['ts_code'][0] != ts_code:
-            print("Error: ts_code is not match")
-            exit(0)
-        code_bar.set_description("%s %d:%d" % (ts_code,index,data_len))
-        df_draw=data[-period:]
-        # draw_Kline(df_draw,period,symbol)
-        data.drop(['ts_code','Date'],axis=1,inplace = True)    
-        train_size=int(common.TRAIN_WEIGHT*(data.shape[0]))
-        # print("Split the data for trainning and testing...")
-        if train_size<common.SEQ_LEN or train_size+common.SEQ_LEN>data.shape[0]:
-            continue
-        Train_data=data[:train_size+common.SEQ_LEN]
-        Test_data=data[train_size-common.SEQ_LEN:]
-        if Train_data is None or Test_data is None:
-            continue
-        # Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
-        # Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
-        stock_train=common.Stock_Data(train=True, dataFrame=Train_data)
-        stock_test=common.Stock_Data(train=False, dataFrame=Test_data)
-        iteration=0
-        loss_list=[]
         #开始训练神经网络
         # print("Start training the model...")
         pbar = tqdm(total=common.EPOCH, leave=False)
