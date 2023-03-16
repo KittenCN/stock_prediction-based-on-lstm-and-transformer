@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import glob
 import threading
 import pandas as pd
 import numpy as np
@@ -245,7 +246,11 @@ if __name__=="__main__":
     period = 100
     print("Clean the data...")
     if symbol == 'Generic.Data':
-        ts_codes = get_stock_list()
+        # ts_codes = get_stock_list()
+        csv_files = glob.glob("./stock_daily/*.csv")
+        ts_codes =[]
+        for csv_file in csv_files:
+            ts_codes.append(os.path.basename(csv_file).rsplit(".", 1)[0])
     else:
         ts_codes = [symbol]
     data_thread = threading.Thread(target=load_data, args=(ts_codes,))
@@ -271,10 +276,12 @@ if __name__=="__main__":
             train_size=int(common.TRAIN_WEIGHT*(data.shape[0]))
             # print("Split the data for trainning and testing...")
             if train_size<common.SEQ_LEN or train_size+common.SEQ_LEN>data.shape[0]:
+                code_bar.update(1)
                 continue
             Train_data=data[:train_size+common.SEQ_LEN]
             Test_data=data[train_size-common.SEQ_LEN:]
             if Train_data is None or Test_data is None:
+                code_bar.update(1)
                 continue
             # Train_data.to_csv(common.train_path,sep=',',index=False,header=False)
             # Test_data.to_csv(common.test_path,sep=',',index=False,header=False)
@@ -284,6 +291,7 @@ if __name__=="__main__":
             loss_list=[]
         except Exception as e:
             print(e)
+            code_bar.update(1)
             continue
         #开始训练神经网络
         # print("Start training the model...")
