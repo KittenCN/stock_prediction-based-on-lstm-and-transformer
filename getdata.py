@@ -22,8 +22,12 @@ def get_stock_list(ts_code=""):
     # print(stock_list)
     return stock_list
 
-def get_stock_data(ts_code="", save=True):
+def get_stock_data(ts_code="", save=True, start_code=""):
     stock_list = get_stock_list(ts_code)
+    for code in stock_list:
+        if code == start_code:
+            break
+        stock_list.remove(code)
     pbar = tqdm(total=len(stock_list), leave=False)
     for code in stock_list:
         df = pro.daily(**{
