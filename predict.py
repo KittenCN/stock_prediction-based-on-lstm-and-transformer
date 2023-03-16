@@ -16,7 +16,6 @@ import os
 from getdata import get_stock_list, get_stock_data
 from tqdm import tqdm
 from cycler import cycler# 用于定制线条颜色
-from torch.utils.data import DataLoader
 
 #数据清洗：丢弃行，或用上一行的值填充
 def data_wash(dataset,keepTime=False):
@@ -130,7 +129,7 @@ def train(epoch):
     model.train()
     global loss_list
     global iteration
-    dataloader=DataLoader(dataset=stock_train,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True)
+    dataloader=common.DataLoaderX(dataset=stock_train,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True, num_workers=4, pin_memory=True)
     subbar = tqdm(total=len(dataloader), leave=False)
     for i,(data,label) in enumerate(dataloader):
         iteration=iteration+1
@@ -159,7 +158,7 @@ def test():
     global accuracy_list, predict_list, test_loss, loss
     if len(stock_test) < 4:
         return 0.00
-    dataloader=DataLoader(dataset=stock_test,batch_size=4,shuffle=False,drop_last=True)
+    dataloader=common.DataLoaderX(dataset=stock_test,batch_size=4,shuffle=False,drop_last=True, num_workers=4, pin_memory=True)
     for i,(data,label) in enumerate(dataloader):
         with torch.no_grad():            
             data,label=data.to(common.device),label.to(common.device)
@@ -185,7 +184,7 @@ def loss_curve(loss_list):
 def contrast_lines(predict_list):
     real_list=[]
     prediction_list=[]
-    dataloader=DataLoader(dataset=stock_test,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True)
+    dataloader=common.DataLoaderX(dataset=stock_test,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True, num_workers=4, pin_memory=True)
     for i,(data,label) in enumerate(dataloader):
         for idx in range(common.BATCH_SIZE):
             real_list.append(np.array(label[idx]*common.std_list[0]+common.mean_list[0]))

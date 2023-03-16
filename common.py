@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+from prefetch_generator import BackgroundGenerator
 
 TRAIN_WEIGHT=0.9
 SEQ_LEN=99
@@ -33,6 +34,10 @@ if os.path.exists("./stock_daily/") == False:
     os.mkdir("./stock_daily/")
 train_path="./stock_handle/stock_train.csv"
 test_path="./stock_handle/stock_test.csv"
+
+class DataLoaderX(DataLoader):
+    def __iter__(self):
+        return BackgroundGenerator(super().__iter__())
 
 #完成数据集类
 class Stock_Data(Dataset):
