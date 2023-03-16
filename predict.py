@@ -209,6 +209,8 @@ def load_data(ts_codes):
             common.data_queue.put(data)
 
 if __name__=="__main__":
+    global test_loss
+    test_loss = 0.00
     symbol = 'Generic.Data'
     # symbol = '000001.SZ'
     cnname = ""
