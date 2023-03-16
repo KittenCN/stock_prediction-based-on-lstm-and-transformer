@@ -1,4 +1,5 @@
 import os
+import time
 import tushare as ts
 from tqdm import tqdm
 
@@ -68,6 +69,7 @@ def get_stock_data(ts_code="", save=True, start_code=""):
         pbar.update(1)
     pbar.close()
     if save == False:
+        time.sleep(0.1)
         return df
     else:
         return None
