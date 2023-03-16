@@ -247,17 +247,18 @@ if __name__=="__main__":
     data_thread = threading.Thread(target=load_data, args=(ts_codes,))
     data_thread.start()
     code_bar = tqdm(total=len(ts_codes))
-    for ts_code in ts_codes:
-        code_bar.set_description("Processing %s" % ts_code)
+    for index, ts_code in enumerate(ts_codes):
         # if common.GET_DATA:
         #     dataFrame = get_stock_data(ts_code, False)
         # data = import_csv(ts_code, dataFrame)
         data = common.data_queue.get()
+        data_len = len(common.data_queue)
         if data is None:
             continue
         if data['ts_code'][0] != ts_code:
             print("Error: ts_code is not match")
             exit(0)
+        code_bar.set_description("%s %d:%d" % (ts_code,index,data_len))
         df_draw=data[-period:]
         # draw_Kline(df_draw,period,symbol)
         data.drop(['ts_code','Date'],axis=1,inplace = True)    
