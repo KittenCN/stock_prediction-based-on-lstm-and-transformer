@@ -31,6 +31,7 @@ def import_csv(stock_code, dataFrame=None):
         df = pd.read_csv('stock_daily/'+stock_code + '.csv')
     elif os.path.exists('stock_daily/'+stock_code + '.csv') == False and dataFrame is None:
         # print('stock_daily/'+stock_code + '.csv'+' not exist')
+        common.csv_queue.put(common.NoneDataFrame)
         return None
     elif dataFrame is not None:
         df = dataFrame
@@ -44,6 +45,9 @@ def import_csv(stock_code, dataFrame=None):
             inplace=True)
     df['Date'] = pd.to_datetime(df['Date'],format='%Y%m%d')    
     df.set_index(df['Date'], inplace=True)
+    if df.empty:
+        common.csv_queue.put(common.NoneDataFrame)
+        return None
     common.csv_queue.put(df)
     return df
 
@@ -254,7 +258,8 @@ if __name__=="__main__":
             # data = import_csv(ts_code, dataFrame)
             data = common.data_queue.get()
             data_len = common.data_queue.qsize()
-            if data is None:
+            if data.empty or data["ts_code"][0] == "None":
+                code_bar.update(1)
                 continue
             if data['ts_code'][0] != ts_code:
                 print("Error: ts_code is not match")

@@ -2,6 +2,7 @@ import math
 import os
 import queue
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
@@ -21,6 +22,9 @@ data_queue=queue.Queue()
 stock_data_queue=queue.Queue()
 stock_list_queue = queue.Queue()
 csv_queue=queue.Queue()
+
+NoneDataFrame = pd.DataFrame(columns=["ts_code"])
+NoneDataFrame["ts_code"] = ["None"]
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if os.path.exists("./stock_handle/") == False:

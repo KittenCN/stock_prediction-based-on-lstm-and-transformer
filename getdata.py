@@ -83,11 +83,12 @@ def get_stock_data(ts_code="", save=True, start_code=""):
         if save: pbar.close()
         if save == False:
             # return df
-            common.stock_data_queue.put(df)
-            return df
-        else:
-            common.stock_data_queue.put(None)
-            return None
+            if df.empty == False:
+                common.stock_data_queue.put(df)
+                return df
+            else:
+                common.stock_data_queue.put(common.NoneDataFrame)
+                return None
 
 if __name__ == "__main__":
     if os.path.exists("./stock_daily") == False:
