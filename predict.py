@@ -166,7 +166,7 @@ def test(dataloader):
         with torch.no_grad():            
             # data,label=data.to(common.device),label.to(common.device)
             test_optimizer.zero_grad()
-            predict=model.forward(data)
+            predict=test_model.forward(data)
             predict_list.append(predict)
             loss=test_criterion(predict,label)
             accuracy_fn=nn.MSELoss()
