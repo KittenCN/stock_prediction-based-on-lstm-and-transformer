@@ -17,7 +17,7 @@ EPOCH=100
 SAVE_NUM_ITER=1000
 SAVE_NUM_EPOCH=50
 GET_DATA=True
-TEST_NUM=1
+TEST_NUM=25
 
 mean_list=[]
 std_list=[]

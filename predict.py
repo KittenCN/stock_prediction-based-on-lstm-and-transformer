@@ -311,10 +311,10 @@ if __name__=="__main__":
             predict_list=[]
             accuracy_list=[]
             train(epoch+1, train_dataloader)
-            if (epoch+1)%common.TEST_NUM==0:
-                # test(test_dataloader)
-                test_thread = threading.Thread(target=test, args=(test_dataloader,))
-                test_thread.start()
+            # if (epoch+1)%common.TEST_NUM==0:
+            #     # test(test_dataloader)
+            #     test_thread = threading.Thread(target=test, args=(test_dataloader,))
+            #     test_thread.start()
             pbar.set_description("ep=%d,lo=%.4f,tl=%.4f"%(epoch+1,loss.item(),test_loss))
             pbar.update(1)
         pbar.close()
