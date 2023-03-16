@@ -252,7 +252,7 @@ if __name__=="__main__":
         #     dataFrame = get_stock_data(ts_code, False)
         # data = import_csv(ts_code, dataFrame)
         data = common.data_queue.get()
-        data_len = len(common.data_queue)
+        data_len = common.data_queue.qsize()
         if data is None:
             continue
         if data['ts_code'][0] != ts_code:
