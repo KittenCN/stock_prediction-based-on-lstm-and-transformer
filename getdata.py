@@ -64,12 +64,12 @@ def get_stock_data(ts_code="", save=True, start_code=""):
             "amount",
             "pre_close"
         ])
+        time.sleep(0.1)
         if save:
             df.to_csv("./stock_daily/"+code+".csv", index=False)
         pbar.update(1)
     pbar.close()
     if save == False:
-        time.sleep(0.1)
         return df
     else:
         return None
