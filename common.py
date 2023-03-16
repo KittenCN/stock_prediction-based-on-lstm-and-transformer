@@ -1,5 +1,6 @@
 import math
 import os
+import queue
 import numpy as np
 import torch
 import torch.nn as nn
@@ -16,6 +17,10 @@ GET_DATA=True
 
 mean_list=[]
 std_list=[]
+data_queue=queue.Queue()
+stock_data_queue=queue.Queue()
+stock_list_queue = queue.Queue()
+csv_queue=queue.Queue()
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if os.path.exists("./stock_handle/") == False:

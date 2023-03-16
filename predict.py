@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import threading
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,6 +44,7 @@ def import_csv(stock_code, dataFrame=None):
             inplace=True)
     df['Date'] = pd.to_datetime(df['Date'],format='%Y%m%d')    
     df.set_index(df['Date'], inplace=True)
+    common.csv_queue.put(df)
     return df
 
 def draw_Kline(df,period,symbol):
@@ -193,9 +195,20 @@ def contrast_lines(predict_list):
     plt.savefig("./png/predict/"+cnname+"_Pre.png",dpi=3000)
     # plt.show()
 
+def load_data(ts_codes):
+    for ts_code in ts_codes:
+        if common.data_queue.empty():
+            print("data_queue is empty, loading data...")
+        if common.GET_DATA:
+            # get_stock_data(ts_code, False)
+            # dataFrame = common.stock_data_queue.get()
+            import_csv(ts_code, None)
+            data = common.csv_queue.get()
+            common.data_queue.put(data)
+
 if __name__=="__main__":
     # symbol = 'Generic.Data'
-    symbol = '000038.SZ'
+    symbol = '000001.SZ'
     cnname = ""
     for item in symbol.split("."):
         cnname += item
@@ -231,12 +244,15 @@ if __name__=="__main__":
         ts_codes = get_stock_list()
     else:
         ts_codes = [symbol]
+    data_thread = threading.Thread(target=load_data, args=(ts_codes,))
+    data_thread.start()
     code_bar = tqdm(total=len(ts_codes))
     for ts_code in ts_codes:
         code_bar.set_description("Processing %s" % ts_code)
-        if common.GET_DATA:
-            dataFrame = get_stock_data(ts_code, False)
-        data = import_csv(ts_code, dataFrame)
+        # if common.GET_DATA:
+        #     dataFrame = get_stock_data(ts_code, False)
+        # data = import_csv(ts_code, dataFrame)
+        data = common.data_queue.get()
         if data is None:
             continue
         df_draw=data[-period:]
