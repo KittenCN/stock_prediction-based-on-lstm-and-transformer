@@ -152,18 +152,23 @@ def train(epoch, dataloader):
     subbar.close()
 
 def test(dataloader):
-    global test_loss
-    model.eval()
     global accuracy_list, predict_list, test_loss, loss
+    test_criterion=nn.MSELoss()
+    test_optimizer=optim.Adam(test_model.parameters(),lr=common.LEARNING_RATE, weight_decay=common.WEIGHT_DECAY)
+    if os.path.exists(save_path+"_Model.pkl") and os.path.exists(save_path+"_Optimizer.pkl"):
+        print("Load model and optimizer from file")
+        test_model.load_state_dict(torch.load(save_path+"_Model.pkl"))
+        test_optimizer.load_state_dict(torch.load(save_path+"_Optimizer.pkl"))
+    test_model.eval()
     if len(stock_test) < 4:
         return 0.00
     for i,(data,label) in enumerate(dataloader):
         with torch.no_grad():            
-            data,label=data.to(common.device),label.to(common.device)
-            optimizer.zero_grad()
+            # data,label=data.to(common.device),label.to(common.device)
+            test_optimizer.zero_grad()
             predict=model.forward(data)
             predict_list.append(predict)
-            loss=criterion(predict,label)
+            loss=test_criterion(predict,label)
             accuracy_fn=nn.MSELoss()
             accuracy=accuracy_fn(predict,label)
             accuracy_list.append(accuracy.item())
@@ -226,9 +231,11 @@ if __name__=="__main__":
     model_mode="LSTM"
     if model_mode=="LSTM":
         model=common.LSTM(dimension=8)
+        test_model=common.LSTM(dimension=8)
         save_path=lstm_path
     elif model_mode=="TRANSFORMER":
         model=common.TransAm(feature_size=8)
+        test_model=common.TransAm(feature_size=8)
         save_path=transformer_path
 
     model=model.to(common.device)
@@ -302,7 +309,9 @@ if __name__=="__main__":
             accuracy_list=[]
             train(epoch+1, train_dataloader)
             if (epoch+1)%common.TEST_NUM==0:
-                test(test_dataloader)
+                # test(test_dataloader)
+                test_thread = threading.Thread(target=test, args=(test_dataloader,))
+                test_thread.start()
             pbar.set_description("ep=%d,lo=%.4f,tl=%.4f"%(epoch+1,loss.item(),test_loss))
             pbar.update(1)
         pbar.close()
