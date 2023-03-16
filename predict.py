@@ -153,27 +153,30 @@ def train(epoch, dataloader):
 
 def test(dataloader):
     global accuracy_list, predict_list, test_loss, loss
-    test_criterion=nn.MSELoss()
-    test_optimizer=optim.Adam(test_model.parameters(),lr=common.LEARNING_RATE, weight_decay=common.WEIGHT_DECAY)
-    if os.path.exists(save_path+"_Model.pkl") and os.path.exists(save_path+"_Optimizer.pkl"):
-        print("Load model and optimizer from file")
-        test_model.load_state_dict(torch.load(save_path+"_Model.pkl"))
-        test_optimizer.load_state_dict(torch.load(save_path+"_Optimizer.pkl"))
-    test_model.eval()
-    if len(stock_test) < 4:
-        return 0.00
-    for i,(data,label) in enumerate(dataloader):
-        with torch.no_grad():            
-            # data,label=data.to(common.device),label.to(common.device)
-            test_optimizer.zero_grad()
-            predict=test_model.forward(data)
-            predict_list.append(predict)
-            loss=test_criterion(predict,label)
-            accuracy_fn=nn.MSELoss()
-            accuracy=accuracy_fn(predict,label)
-            accuracy_list.append(accuracy.item())
-    # print("test_data MSELoss:(pred-real)/real=",np.mean(accuracy_list))
-    test_loss = np.mean(accuracy_list)
+    lock = threading.Lock()
+    with lock:
+        test_criterion=nn.MSELoss()
+        test_optimizer=optim.Adam(test_model.parameters(),lr=common.LEARNING_RATE, weight_decay=common.WEIGHT_DECAY)
+        if os.path.exists(save_path+"_Model.pkl") and os.path.exists(save_path+"_Optimizer.pkl"):
+            # print("Load model and optimizer from file")
+            test_model.load_state_dict(torch.load(save_path+"_Model.pkl"))
+            test_optimizer.load_state_dict(torch.load(save_path+"_Optimizer.pkl"))
+        test_model.eval()
+        test_optimizer.zero_grad()
+        if len(stock_test) < 4:
+            return 0.00
+        for i,(data,label) in enumerate(dataloader):
+            with torch.no_grad():            
+                # data,label=data.to(common.device),label.to(common.device)
+                test_optimizer.zero_grad()
+                predict=test_model.forward(data)
+                predict_list.append(predict)
+                loss=test_criterion(predict,label)
+                accuracy_fn=nn.MSELoss()
+                accuracy=accuracy_fn(predict,label)
+                accuracy_list.append(accuracy.item())
+        # print("test_data MSELoss:(pred-real)/real=",np.mean(accuracy_list))
+        test_loss = np.mean(accuracy_list)
 
 def loss_curve(loss_list):
     x=np.linspace(1,len(loss_list),len(loss_list))

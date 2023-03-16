@@ -9,10 +9,10 @@ from torch.utils.data import Dataset, DataLoader
 from prefetch_generator import BackgroundGenerator
 
 TRAIN_WEIGHT=0.9
-SEQ_LEN=99
+SEQ_LEN=179
 LEARNING_RATE=0.00001
 WEIGHT_DECAY=0.01
-BATCH_SIZE=64
+BATCH_SIZE=512
 EPOCH=100
 SAVE_NUM_ITER=1000
 SAVE_NUM_EPOCH=50
