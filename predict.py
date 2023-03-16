@@ -268,8 +268,8 @@ if __name__=="__main__":
             pbar.update(1)
         pbar.close()
         code_bar.update(1)
-    print("Training finished!")
     code_bar.close()
+    print("Training finished!")
 
     # print("Create the png for loss")
     # #绘制损失函数下降曲线    
