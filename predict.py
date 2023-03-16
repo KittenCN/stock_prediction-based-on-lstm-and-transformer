@@ -124,12 +124,11 @@ def draw_Kline(df,period,symbol):
         %(symbol, period) + '.jpg')
     plt.show()
 
-def train(epoch):
+def train(epoch, dataloader):
     global loss
     model.train()
     global loss_list
     global iteration
-    dataloader=common.DataLoaderX(dataset=stock_train,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True, num_workers=4, pin_memory=True)
     subbar = tqdm(total=len(dataloader), leave=False)
     for i,(data,label) in enumerate(dataloader):
         iteration=iteration+1
@@ -152,13 +151,12 @@ def train(epoch):
         torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
     subbar.close()
 
-def test():
+def test(dataloader):
     global test_loss
     model.eval()
     global accuracy_list, predict_list, test_loss, loss
     if len(stock_test) < 4:
         return 0.00
-    dataloader=common.DataLoaderX(dataset=stock_test,batch_size=4,shuffle=False,drop_last=True, num_workers=4, pin_memory=True)
     for i,(data,label) in enumerate(dataloader):
         with torch.no_grad():            
             data,label=data.to(common.device),label.to(common.device)
@@ -234,7 +232,7 @@ if __name__=="__main__":
     model=model.to(common.device)
     print(model)
     criterion=nn.MSELoss()
-    optimizer=optim.Adam(model.parameters(),lr=common.LEARNING_RATE)
+    optimizer=optim.Adam(model.parameters(),lr=common.LEARNING_RATE, weight_decay=common.WEIGHT_DECAY)
     if os.path.exists(save_path+"_Model.pkl") and os.path.exists(save_path+"_Optimizer.pkl"):
         print("Load model and optimizer from file")
         model.load_state_dict(torch.load(save_path+"_Model.pkl"))
@@ -294,12 +292,14 @@ if __name__=="__main__":
             continue
         #开始训练神经网络
         # print("Start training the model...")
+        train_dataloader=common.DataLoaderX(dataset=stock_train,batch_size=common.BATCH_SIZE,shuffle=False,drop_last=True, num_workers=4, pin_memory=True)
+        test_dataloader=common.DataLoaderX(dataset=stock_test,batch_size=4,shuffle=False,drop_last=True, num_workers=4, pin_memory=True)
         pbar = tqdm(total=common.EPOCH, leave=False)
         for epoch in range(0,common.EPOCH):
             predict_list=[]
             accuracy_list=[]
-            train(epoch+1)
-            test()
+            train(epoch+1, train_dataloader)
+            test(test_dataloader)
             pbar.set_description("ep=%d,lo=%.4f,tl=%.4f"%(epoch+1,loss.item(),test_loss))
             pbar.update(1)
         pbar.close()
