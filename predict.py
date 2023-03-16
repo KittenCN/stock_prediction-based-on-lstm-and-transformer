@@ -146,7 +146,7 @@ def train(epoch, dataloader):
         if iteration%common.SAVE_NUM_ITER==0:
             torch.save(model.state_dict(),save_path+"_Model.pkl")
             torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
-    if (epoch+1)%common.SAVE_NUM_EPOCH==0:
+    if (epoch+1)%common.SAVE_NUM_EPOCH==0 or (epoch+1)==common.EPOCH:
         torch.save(model.state_dict(),save_path+"_Model.pkl")
         torch.save(optimizer.state_dict(),save_path+"_Optimizer.pkl")
     subbar.close()
